@@ -1,5 +1,6 @@
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
+from mesa.visualization.modules import ChartModule
 
 
 from festival.festival import SimpleModel
@@ -15,10 +16,14 @@ def agent_draw(agent):
 
 canvas = SimpleCanvas(agent_draw, 500, 500)
 model_params = {"num_agents": 50}
-
 n_slider = UserSettableParameter('slider', "Number of agents", 50, 2, 200, 1)
 
+chart = ChartModule([{"Label": "Alive agents",
+                      "Color": "Black"}],
+                    data_collector_name='datacollector')
+
+
 server = ModularServer(SimpleModel,
-                       [canvas],
+                       [canvas, chart],
                        "Simple Model",
                        {"num_agents": n_slider})
