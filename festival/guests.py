@@ -16,7 +16,6 @@ from tqdm import tqdm
 import seaborn as sns
 sns.set()
 
-
 class Guest(Agent):
 
     def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float]):
@@ -32,10 +31,18 @@ class Guest(Agent):
         self.energy = 1.
 
         self.role: str = None
+        self.type = 'guest'
         self.tastes = {
             'party': random.random() - 0.5,
             'fight': random.random() - 0.5,
         }
+
+        self.store = None
+
+    def distance_to(self, other: Tuple[float, float]):
+        pos = np.array(self.pos)
+        other = np.array(other)
+        return np.linalg.norm(pos - other)
 
     def head_to(self, target:  Tuple[float, float], speed: float = 1.5):
         """
@@ -57,7 +64,9 @@ class Guest(Agent):
 
         random_heading = random.random() * 2*np.pi
         rand_vector = speed * np.array([np.cos(random_heading), np.sin(random_heading)])
-        self.model.space.move_agent(self, pos - rand_vector)
+        target_location = pos + rand_vector
+        target_location = np.clip(target_location, [0, 0], [99.9, 99.9])
+        self.model.space.move_agent(self, target_location)
         return
 
     def propose_interaction(self, other: 'Guest', action: str):
@@ -104,12 +113,21 @@ class Guest(Agent):
             other.interaction_proposals = []
 
     def step(self):
-        self.wander(1.0)
-        # self.head_to((0., 0.))
 
-        self.fullness -= 0.1 * self.fullness
-        self.energy -= 0.1 * self.energy
-        self.happiness += 0.1 * (self.fullness - 0.5) + 0.1 * (self.energy - 0.5)
+        self.fullness -= 0.01 * self.fullness
+        #self.energy -= 0.1 * self.energy
+        self.happiness += 0.1 * (self.fullness - 0.5)# + 0.1 * (self.energy - 0.5)
+
+        if self.fullness < 0.5:
+            if self.store is None:
+                self.store = random.choice(list(filter(lambda x: x.type == 'store', self.model.schedule.agents)))
+            self.head_to(self.store.pos, speed=1.)
+        else:
+            self.wander(2.0)
+
+        if self.store is not None and self.distance_to(self.store.pos) < 5:
+            self.fullness = 1.
+            self.store = None
 
     def die(self):
         if self.dead:
@@ -126,6 +144,13 @@ class PartyPerson(Guest):
 
     def send_proposes(self):
         neighbors = self.model.space.get_neighbors(self.pos, self.range, include_center=False)
+        neighbors = list(filter(lambda x: x.type == 'guest', neighbors))
         if len(neighbors) > 0:
             other_agent = random.choice(neighbors)
             self.propose_interaction(other_agent, 'party')
+
+    def process_proposes(self):
+        super().process_proposes()
+
+    def step(self):
+        super().step()

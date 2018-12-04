@@ -47,6 +47,8 @@ let ContinuousVisualization = function (height, width, context) {
             context.fillRect(x0, y0, dx, dy);
         else
             context.strokeRect(x0, y0, dx, dy);
+
+        context.closePath();
     };
 
     this.resetCanvas = function () {
