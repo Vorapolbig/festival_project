@@ -138,7 +138,7 @@ class FestivalModel(Model):
             else:
                 buffers[agent] -= 3
             buffers[agent] += agent.tastes['fight']
-            buffers[agent] += random.random() - 0.5
+            buffers[agent] += 0.5*random.random() - 0.25
 
         for agent in (agent1, agent2):
             agent.happiness += buffers[agent]
@@ -156,7 +156,7 @@ class FestivalModel(Model):
             if agent.role == 'guard':
                 buffers[agent] -= 3
             buffers[agent] += agent.tastes['party']
-            buffers[agent] += random.random() - 0.5
+            buffers[agent] += 0.5*random.random() - 0.25
 
         for agent in (agent1, agent2):
             agent.happiness += buffers[agent]
@@ -216,14 +216,14 @@ class FestivalModel(Model):
             return
         elif guest.role == 'guard':
             buffers[celeb] += 1
-            buffers[guest] -= 2
+            buffers[guest] -= 1
         else:
             buffers[celeb] += 1
             buffers[guest] += 1
 
         for agent in (celeb, guest):
             buffers[agent] += agent.tastes['selfie']
-            buffers[agent] += random.random() - 0.5
+            buffers[agent] += 0.5*random.random() - 0.25
 
         for agent in (agent1, agent2):
             agent.happiness += buffers[agent]
@@ -262,7 +262,7 @@ class FestivalModel(Model):
 
         for agent in (hippie, guest):
             buffers[agent] += agent.tastes['smoke']
-            buffers[agent] += random.random() - 0.5
+            buffers[agent] += 0.5*random.random() - 0.25
 
         for agent in (agent1, agent2):
             agent.happiness += buffers[agent]

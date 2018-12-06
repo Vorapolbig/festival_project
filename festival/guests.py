@@ -126,7 +126,7 @@ class Guest(Agent):
         for proposal in self.interaction_proposals:
             proposal: Tuple[Guest, str]
             error_prob = .05
-            if random.random() > error_prob:
+            if random.random() < error_prob:
                 accepted[proposal] = True
             else:
                 if self.knowledge[(proposal[0].role, proposal[1])] >= 0:
@@ -163,7 +163,7 @@ class Guest(Agent):
         self.enjoyment -= 0.01 * self.enjoyment
         # self.happiness += 0.1 * (self.fullness - 0.5) + 0.1 * (self.enjoyment - 0.5)
 
-        self.happiness -= 0.0#2
+        # self.happiness -= 0.02
 
         if self.fullness < 0.5:
             if self.target is None:
