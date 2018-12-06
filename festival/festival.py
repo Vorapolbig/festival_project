@@ -18,7 +18,6 @@ from .guests import Guest, PartyPerson
 import seaborn as sns
 sns.set()
 
-# TODO: Implement venues
 # TODO: Implement an "event" agent for visualization purposes
 
 
@@ -28,7 +27,6 @@ class Store(Agent):
         self.pos = pos
         self.role = 'store'
         self.type = 'store'
-        # TODO: Fix display
 
     def send_proposes(self):
         pass
@@ -50,11 +48,12 @@ class Event(Agent):
     # Only serves the purpose of being visualized
     pass
 
+
 class FestivalModel(Model):
 
-    def __init__(self, num_agents):
+    def __init__(self, num_party: int=20, num_guard: int=5, num_trouble: int=5, num_celeb: int=5, num_hippie: int=20):
         super().__init__()
-        self.num_agents = num_agents
+        self.num_agents = num_party + num_guard + num_trouble + num_celeb + num_hippie
         self.schedule = StagedActivation(self, ['send_proposes', 'process_proposes', 'step', 'die'])
         self.space = ContinuousSpace(100, 100, False)
         self.datacollector = DataCollector(
@@ -79,13 +78,13 @@ class FestivalModel(Model):
         self.schedule.step()
 
     def fight(self, agent1: Guest, agent2: Guest):
-        # TODO: change this to modifying happiness and energy
         assert self == agent1.model == agent2.model, "Can't kill other festival's guests"
-        eps = random.random()
-        if eps < 0.5:
-            agent1.dead = True
-        else:
-            agent2.dead = True
+        for agent in (agent1, agent2):
+            if agent.role == 'troublemaker':
+                agent.happiness += 2
+            agent.happiness -= 1
+            agent.happiness += agent.tastes['fight']
+            agent.happiness += random.random() - 0.5
         print("A fight is happening")
 
     def party(self, agent1: Guest, agent2: Guest):
@@ -94,6 +93,7 @@ class FestivalModel(Model):
             if agent.role == 'party':
                 agent.happiness += 1
             agent.happiness += agent.tastes['party']
+            agent.happiness += random.random() - 0.5
         print("A party is happening")
 
     def calm(self, agent1: Guest, agent2: Guest): # Incorporate this in fight?
@@ -115,9 +115,70 @@ class FestivalModel(Model):
         if guest.role == 'troublemaker':
             guard.happiness += 1
             guest.happiness -= 1
+        else:
+            guard.happiness -= 1
+            guest.happiness -= 1
+
+    def selfie(self, agent1: Guest, agent2: Guest):
+        assert self == agent1.model == agent2.model
+
+        if agent1.role == 'celebrity':
+            celeb = agent1
+            guest = agent2
+        elif agent2.role == 'celebrity':
+            celeb = agent2
+            guest = agent1
+        else:
+            print("No celeb in selfie")
+            return
+
+        if guest.role == 'troublemaker':
+            self.fight(celeb, guest)
+            return
+        elif guest.role == 'guard':
+            celeb.happiness += 1
+            guest.happiness -= 1
+        else:
+            celeb.happiness += 1
+            guest.happiness += 1
+
+        for agent in (celeb, guest):
+            agent.happiness += agent.tastes['selfie']
+            agent.happiness += random.random() - 0.5
+
+    def smoke(self, agent1: Guest, agent2: Guest):
+        assert self == agent1.model == agent2.model
+
+        if agent1.role == 'hippie':
+            hippie = agent1
+            guest = agent2
+        elif agent2.role == 'hippie':
+            hippie = agent2
+            guest = agent1
+        else:
+            print("No hippie in smoking")
+            return
+
+        if guest.role == 'hippie':
+            hippie.happiness += 2
+            guest.happiness += 2
+        elif guest.role == 'celebrity':
+            hippie.happiness += 1
+            guest.happiness -= 1
+        elif guest.role == 'guard':
+            hippie.happiness -= 1
+            guest.happiness += 1
+        else:
+            hippie.happiness += 1
+            guest.happiness += 0.5
+
+        for agent in (hippie, guest):
+            agent.happiness += agent.tastes['smoke']
+            agent.happiness += random.random() - 0.5
+
 
 # Roles:
-# PartyPerson
+# PartyPerson - parties with everyone
 # Guard - points for staying near the celebrity and calming troublemakers, negative for distractions and calming normies
 # Troublemaker - points for causing fights, negative for getting calmed by bodyguard
 # Celebrity - points for selfies with nice/popular guests

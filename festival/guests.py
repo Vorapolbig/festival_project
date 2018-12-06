@@ -1,5 +1,6 @@
 import random
-from typing import Type, Any, Tuple, List
+from typing import Type, Any, Tuple, List, DefaultDict
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,7 @@ from tqdm import tqdm
 
 import seaborn as sns
 sns.set()
+
 
 class Guest(Agent):
 
@@ -35,9 +37,13 @@ class Guest(Agent):
         self.tastes = {
             'party': random.random() - 0.5,
             'fight': random.random() - 0.5,
+            'selfie': random.random() - 0.5,
+            'smoke': random.random() - 0.5
         }
 
         self.store = None
+
+        self.knowledge: DefaultDict[str, float] = defaultdict(int)
 
     def distance_to(self, other: Tuple[float, float]):
         pos = np.array(self.pos)
@@ -154,3 +160,80 @@ class PartyPerson(Guest):
 
     def step(self):
         super().step()
+
+
+class Guard(Guest):
+    def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float]):
+        super().__init__(unique_id, model, pos)
+        self.role = 'guard'
+
+    def send_proposes(self):
+        neighbors = self.model.space.get_neighbors(self.pos, self.range, include_center=False)
+        neighbors = list(filter(lambda x: x.type == 'guest', neighbors))
+        if len(neighbors) > 0:
+            other_agent = random.choice(neighbors)  # TODO Make decision which one if any
+            self.propose_interaction(other_agent, 'calm')
+
+    def process_proposes(self):
+        super().process_proposes()
+
+    def step(self):
+        super().step()
+
+
+class Troublemaker(Guest):
+    def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float]):
+        super().__init__(unique_id, model, pos)
+        self.role = 'troublemaker'
+
+    def send_proposes(self):
+        neighbors = self.model.space.get_neighbors(self.pos, self.range, include_center=False)
+        neighbors = list(filter(lambda x: x.type == 'guest', neighbors))
+        if len(neighbors) > 0:
+            other_agent = random.choice(neighbors)
+            self.propose_interaction(other_agent, 'fight')
+
+    def process_proposes(self):
+        super().process_proposes() # TODO approve only calm if present
+
+    def step(self):
+        super().step()
+
+
+class Celebrity(Guest):
+    def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float]):
+        super().__init__(unique_id, model, pos)
+        self.role = 'celebrity'
+
+    def send_proposes(self):
+        neighbors = self.model.space.get_neighbors(self.pos, self.range, include_center=False)
+        neighbors = list(filter(lambda x: x.type == 'guest', neighbors))
+        if len(neighbors) > 0:
+            other_agent = random.choice(neighbors)
+            self.propose_interaction(other_agent, 'selfie')
+
+    def process_proposes(self):
+        super().process_proposes()
+
+    def step(self):
+        super().step()
+
+
+class Hippie(Guest):
+    def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float]):
+        super().__init__(unique_id, model, pos)
+        self.role = 'hippie'
+
+    def send_proposes(self):
+        neighbors = self.model.space.get_neighbors(self.pos, self.range, include_center=False)
+        neighbors = list(filter(lambda x: x.type == 'guest', neighbors))
+        if len(neighbors) > 0:
+            other_agent = random.choice(neighbors)
+            self.propose_interaction(other_agent, 'smoke')
+
+    def process_proposes(self):
+        super().process_proposes()
+
+    def step(self):
+        super().step()
+# TODO add stages and learning
