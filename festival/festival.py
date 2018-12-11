@@ -13,7 +13,7 @@ from mesa.space import ContinuousSpace
 
 from tqdm import tqdm
 
-from .guests import Guest, PartyPerson
+from .guests import Guest, PartyPerson, Guard, Troublemaker, Celebrity, Hippie
 
 import seaborn as sns
 sns.set()
@@ -42,7 +42,24 @@ class Store(Agent):
 
 
 class Stage(Agent):
-    pass
+    def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float]):
+        super().__init__(unique_id, model)
+        self.pos = pos
+        self.role = 'stage'
+        self.type = 'stage'
+
+    def send_proposes(self):
+        pass
+
+    def process_proposes(self):
+        pass
+
+    def step(self):
+        pass
+
+    def die(self):
+        pass
+
 
 class Event(Agent):
     # Only serves the purpose of being visualized
@@ -51,9 +68,15 @@ class Event(Agent):
 
 class FestivalModel(Model):
 
-    def __init__(self, num_party: int=20, num_guard: int=5, num_trouble: int=5, num_celeb: int=5, num_hippie: int=20):
+    def __init__(self, num_party: int=20, num_guard: int=5, num_trouble: int=5, num_celeb: int=5, num_hippie: int=20, learning=True):
         super().__init__()
         self.num_agents = num_party + num_guard + num_trouble + num_celeb + num_hippie
+        self.num_party = num_party
+        self.num_guard = num_guard
+        self.num_trouble = num_trouble
+        self.num_celeb = num_celeb
+        self.num_hippie = num_hippie
+
         self.schedule = StagedActivation(self, ['send_proposes', 'process_proposes', 'step', 'die'])
         self.space = ContinuousSpace(100, 100, False)
         self.datacollector = DataCollector(
@@ -62,14 +85,43 @@ class FestivalModel(Model):
                              "Mean fullness": lambda model: np.mean([a.fullness for a in filter(lambda x: x.type == 'guest', model.schedule.agents)])}
         )
 
-        for i in range(self.num_agents):
+        for i in range(self.num_party):
             x, y = np.random.rand(2) * 100
-            a_ = PartyPerson('Guest%d' % i, self, (x, y))
+            a_ = PartyPerson('Party%d' % i, self, (x, y), learning)
             self.schedule.add(a_)
             self.space.place_agent(a_, (x, y))
 
-        for x, y in ((x, y) for x in [33, 66] for y in [33, 66]):
+        for i in range(self.num_guard):
+            x, y = np.random.rand(2) * 100
+            a_ = Guard('Guard%d' % i, self, (x, y), learning)
+            self.schedule.add(a_)
+            self.space.place_agent(a_, (x, y))
+
+        for i in range(self.num_trouble):
+            x, y = np.random.rand(2) * 100
+            a_ = Troublemaker('Trouble%d' % i, self, (x, y), learning)
+            self.schedule.add(a_)
+            self.space.place_agent(a_, (x, y))
+
+        for i in range(self.num_celeb):
+            x, y = np.random.rand(2) * 100
+            a_ = Celebrity('Celeb%d' % i, self, (x, y), learning)
+            self.schedule.add(a_)
+            self.space.place_agent(a_, (x, y))
+
+        for i in range(self.num_hippie):
+            x, y = np.random.rand(2) * 100
+            a_ = Hippie('Hippie%d' % i, self, (x, y), learning)
+            self.schedule.add(a_)
+            self.space.place_agent(a_, (x, y))
+
+        for x, y in ((x, y) for x in [40, 60] for y in [40, 60]):
             s_ = Store('StoreX%dY%d' % (x, y), self, (x, y))
+            self.schedule.add(s_)
+            self.space.place_agent(s_, (x, y))
+
+        for x, y in ((x, y) for x in [20, 80] for y in [20, 80]):
+            s_ = Stage('StageX%dY%d' % (x, y), self, (x, y))
             self.schedule.add(s_)
             self.space.place_agent(s_, (x, y))
 
@@ -78,28 +130,46 @@ class FestivalModel(Model):
         self.schedule.step()
 
     def fight(self, agent1: Guest, agent2: Guest):
-        assert self == agent1.model == agent2.model, "Can't kill other festival's guests"
+        assert self == agent1.model == agent2.model, "Can't fight between other festival's guests"
+        buffers = {agent1: 0., agent2: 0.}
         for agent in (agent1, agent2):
             if agent.role == 'troublemaker':
-                agent.happiness += 2
-            agent.happiness -= 1
-            agent.happiness += agent.tastes['fight']
-            agent.happiness += random.random() - 0.5
+                buffers[agent] += 1
+            else:
+                buffers[agent] -= 3
+            buffers[agent] += agent.tastes['fight']
+            buffers[agent] += 0.5*random.random() - 0.25
+
+        for agent in (agent1, agent2):
+            agent.happiness += buffers[agent]
+
+        agent1.learn((agent2.role, 'fight'), buffers[agent1])
+        agent2.learn((agent1.role, 'fight'), buffers[agent2])
         print("A fight is happening")
 
     def party(self, agent1: Guest, agent2: Guest):
         assert self == agent1.model == agent2.model
+        buffers = {agent1: 0., agent2: 0.}
         for agent in (agent1, agent2):
             if agent.role == 'party':
-                agent.happiness += 1
-            agent.happiness += agent.tastes['party']
-            agent.happiness += random.random() - 0.5
+                buffers[agent] += 1
+            if agent.role == 'guard':
+                buffers[agent] -= 3
+            buffers[agent] += agent.tastes['party']
+            buffers[agent] += 0.5*random.random() - 0.25
+
+        for agent in (agent1, agent2):
+            agent.happiness += buffers[agent]
+
+        agent1.learn((agent2.role, 'party'), buffers[agent1])
+        agent2.learn((agent1.role, 'party'), buffers[agent2])
+
         print("A party is happening")
 
     def calm(self, agent1: Guest, agent2: Guest): # Incorporate this in fight?
         assert self == agent1.model == agent2.model
         assert agent1.role == 'guard' or agent2.role == 'guard', "This interaction is forbidden"
-
+        buffers = {agent1: 0., agent2: 0.}
         if agent1.role == 'guard':
             guard = agent1
             guest = agent2
@@ -113,14 +183,23 @@ class FestivalModel(Model):
             return
 
         if guest.role == 'troublemaker':
-            guard.happiness += 1
-            guest.happiness -= 1
+            buffers[guard] += 1
+            buffers[guest] -= 1
         else:
-            guard.happiness -= 1
-            guest.happiness -= 1
+            buffers[guard] -= 2
+            buffers[guest] -= 2
+
+        for agent in (agent1, agent2):
+            agent.happiness += buffers[agent]
+
+        agent1.learn((agent2.role, 'calm'), buffers[agent1])
+        agent2.learn((agent1.role, 'calm'), buffers[agent2])
+
+        print("Calming is happening")
 
     def selfie(self, agent1: Guest, agent2: Guest):
         assert self == agent1.model == agent2.model
+        buffers = {agent1: 0, agent2: 0}
 
         if agent1.role == 'celebrity':
             celeb = agent1
@@ -136,18 +215,27 @@ class FestivalModel(Model):
             self.fight(celeb, guest)
             return
         elif guest.role == 'guard':
-            celeb.happiness += 1
-            guest.happiness -= 1
+            buffers[celeb] += 1
+            buffers[guest] -= 1
         else:
-            celeb.happiness += 1
-            guest.happiness += 1
+            buffers[celeb] += 1
+            buffers[guest] += 1
 
         for agent in (celeb, guest):
-            agent.happiness += agent.tastes['selfie']
-            agent.happiness += random.random() - 0.5
+            buffers[agent] += agent.tastes['selfie']
+            buffers[agent] += 0.5*random.random() - 0.25
+
+        for agent in (agent1, agent2):
+            agent.happiness += buffers[agent]
+
+        agent1.learn((agent2.role, 'selfie'), buffers[agent1])
+        agent2.learn((agent1.role, 'selfie'), buffers[agent2])
+
+        print("Selfie is happening")
 
     def smoke(self, agent1: Guest, agent2: Guest):
         assert self == agent1.model == agent2.model
+        buffers = {agent1: 0., agent2: 0.}
 
         if agent1.role == 'hippie':
             hippie = agent1
@@ -160,21 +248,29 @@ class FestivalModel(Model):
             return
 
         if guest.role == 'hippie':
-            hippie.happiness += 2
-            guest.happiness += 2
+            buffers[hippie] += 2
+            buffers[guest] += 2
         elif guest.role == 'celebrity':
-            hippie.happiness += 1
-            guest.happiness -= 1
+            buffers[hippie] += 1
+            buffers[guest] -= 2
         elif guest.role == 'guard':
-            hippie.happiness -= 1
-            guest.happiness += 1
+            buffers[hippie] -= 2
+            buffers[guest] += 1
         else:
-            hippie.happiness += 1
-            guest.happiness += 0.5
+            buffers[hippie] += 1
+            buffers[guest] += 0.5
 
         for agent in (hippie, guest):
-            agent.happiness += agent.tastes['smoke']
-            agent.happiness += random.random() - 0.5
+            buffers[agent] += agent.tastes['smoke']
+            buffers[agent] += 0.5*random.random() - 0.25
+
+        for agent in (agent1, agent2):
+            agent.happiness += buffers[agent]
+
+        agent1.learn((agent2.role, 'smoke'), buffers[agent1])
+        agent2.learn((agent1.role, 'smoke'), buffers[agent2])
+
+        print("Smoking is happening")
 
 
 # Roles:
