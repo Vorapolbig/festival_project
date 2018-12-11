@@ -31,8 +31,8 @@ class Guest(Agent):
         self.interaction_proposals: List[Tuple[Guest, str]] = []
         self.dead: bool = False
 
-        self.fullness = 1.
-        self.enjoyment = 1.
+        self.fullness = .55
+        self.enjoyment = .55
 
         self.role: str = None
         self.type = 'guest'
@@ -131,7 +131,6 @@ class Guest(Agent):
             else:
                 if self.knowledge[(proposal[0].role, proposal[1])] >= 0:
                     accepted[proposal] = True
-            # TODO Maybe sigmoid probability of acceptance?
 
         self.interaction_proposals = filter(lambda x: accepted[x], self.interaction_proposals)
         # self.interaction_proposals = filter(lambda x: False, self.interaction_proposals)
@@ -159,8 +158,8 @@ class Guest(Agent):
 
     def step(self):
 
-        self.fullness -= 0.01 * self.fullness
-        self.enjoyment -= 0.01 * self.enjoyment
+        self.fullness -= 0.005 * self.fullness
+        self.enjoyment -= 0.005 * self.enjoyment
         # self.happiness += 0.1 * (self.fullness - 0.5) + 0.1 * (self.enjoyment - 0.5)
 
         # self.happiness -= 0.02

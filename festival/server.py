@@ -5,10 +5,16 @@ from mesa.visualization.modules import ChartModule
 from festival.festival import FestivalModel
 from festival.SimpleContinuousModule import SimpleCanvas
 
+guest_color_dict = {
+    # role, color
+    'party': 'Orange',
+    'troublemaker': 'Red',
+    'celebrity': 'Yellow',
+    'guard': 'Black',
+    'hippie': 'Green'
+}
 
 def agent_draw(agent):
-    if agent.role == 'store':
-        color = "Blue"
     if agent.role == 'store':
         display = {"Shape": "rect",
                    "w": 0.05,
@@ -25,7 +31,7 @@ def agent_draw(agent):
         display = {"Shape": "circle",
                    "r": 4,
                    "Filled": "true",
-                   "Color": "Red"}
+                   "Color": guest_color_dict[agent.role]}
 
     return display
 

@@ -115,7 +115,7 @@ class FestivalModel(Model):
             self.schedule.add(a_)
             self.space.place_agent(a_, (x, y))
 
-        for x, y in ((x, y) for x in [33, 66] for y in [33, 66]):
+        for x, y in ((x, y) for x in [40, 60] for y in [40, 60]):
             s_ = Store('StoreX%dY%d' % (x, y), self, (x, y))
             self.schedule.add(s_)
             self.space.place_agent(s_, (x, y))
