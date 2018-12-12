@@ -129,19 +129,31 @@ class FestivalModel(Model):
         self.datacollector.collect(self)
         self.schedule.step()
 
-    def fight(self, agent1: Guest, agent2: Guest):
+    def fight(self, agent1: Guest, agent2: Guest, pareto=True):
         assert self == agent1.model == agent2.model, "Can't fight between other festival's guests"
         buffers = {agent1: 0., agent2: 0.}
+        buffers_joy = {agent1: 0., agent2: 0.}
+
         for agent in (agent1, agent2):
             if agent.role == 'troublemaker':
                 buffers[agent] += 1
             else:
                 buffers[agent] -= 3
+
+            p1 = [0.25, 0.25, 0.25, 0.25]
+            p2 = [0.10, 0.10, 0.20, 0.60]
+            index = np.random.choice(np.arange(0, 4), p=p1 if pareto else p2)
+            store = [(0, 0), (0.2, -0.7), (-0.7, 0.2), (-0.5, -0.5)]
+
+            select = store[index]
+            buffers_joy[agent] += select[0] if agent.role == 'troublemaker' else select[1]
+
             buffers[agent] += agent.tastes['fight']
             buffers[agent] += 0.5*random.random() - 0.25
 
         for agent in (agent1, agent2):
             agent.happiness += buffers[agent]
+            agent.enjoyment += buffers_joy[agent]
 
         agent1.learn((agent2.role, 'fight'), buffers[agent1])
         agent2.learn((agent1.role, 'fight'), buffers[agent2])
