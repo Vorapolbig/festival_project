@@ -68,7 +68,7 @@ class Event(Agent):
 
 class FestivalModel(Model):
 
-    def __init__(self, num_party: int=20, num_guard: int=5, num_trouble: int=5, num_celeb: int=5, num_hippie: int=20, learning=True):
+    def __init__(self, num_party: int= 20, num_guard: int= 5, num_trouble: int= 5, num_celeb: int= 5, num_hippie: int= 20, learning=True, pareto_fight=False, pareto=False):
         super().__init__()
         self.num_agents = num_party + num_guard + num_trouble + num_celeb + num_hippie
         self.num_party = num_party
@@ -76,6 +76,8 @@ class FestivalModel(Model):
         self.num_trouble = num_trouble
         self.num_celeb = num_celeb
         self.num_hippie = num_hippie
+        self.pareto = pareto
+        self.pareto_fight = pareto_fight
 
         self.schedule = StagedActivation(self, ['send_proposes', 'process_proposes', 'step', 'die'])
         self.space = ContinuousSpace(100, 100, False)
@@ -129,7 +131,7 @@ class FestivalModel(Model):
         self.datacollector.collect(self)
         self.schedule.step()
 
-    def fight(self, agent1: Guest, agent2: Guest, pareto=True):
+    def fight(self, agent1: Guest, agent2: Guest):
         assert self == agent1.model == agent2.model, "Can't fight between other festival's guests"
         buffers = {agent1: 0., agent2: 0.}
         buffers_joy = {agent1: 0., agent2: 0.}
@@ -139,21 +141,22 @@ class FestivalModel(Model):
                 buffers[agent] += 1
             else:
                 buffers[agent] -= 3
+            if self.pareto_fight:
+                p1 = [0.25, 0.25, 0.25, 0.25]
+                p2 = [0.10, 0.10, 0.20, 0.60]
+                index = np.random.choice(np.arange(0, 4), p=p1 if self.pareto else p2)
+                store = [(0, 0), (0.2, -0.7), (-0.7, 0.2), (-0.5, -0.5)]
 
-            p1 = [0.25, 0.25, 0.25, 0.25]
-            p2 = [0.10, 0.10, 0.20, 0.60]
-            index = np.random.choice(np.arange(0, 4), p=p1 if pareto else p2)
-            store = [(0, 0), (0.2, -0.7), (-0.7, 0.2), (-0.5, -0.5)]
-
-            select = store[index]
-            buffers_joy[agent] += select[0] if agent.role == 'troublemaker' else select[1]
+                select = store[index]
+                buffers_joy[agent] += select[0] if agent.role == 'troublemaker' else select[1]
 
             buffers[agent] += agent.tastes['fight']
             buffers[agent] += 0.5*random.random() - 0.25
 
         for agent in (agent1, agent2):
             agent.happiness += buffers[agent]
-            agent.enjoyment += buffers_joy[agent]
+            if self.pareto_fight:
+                agent.enjoyment += buffers_joy[agent]
 
         agent1.learn((agent2.role, 'fight'), buffers[agent1])
         agent2.learn((agent1.role, 'fight'), buffers[agent2])

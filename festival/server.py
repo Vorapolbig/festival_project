@@ -32,9 +32,7 @@ def agent_draw(agent):
                    "r": 4,
                    "Filled": "true",
                    "Color": guest_color_dict[agent.role]}
-
     return display
-
 
 canvas = SimpleCanvas(agent_draw, 500, 500)
 model_params = {"num_agents": 50}
@@ -45,6 +43,8 @@ n_celeb = UserSettableParameter('slider', 'Number of celebrity agents', 10, 2, 2
 n_hippie = UserSettableParameter('slider', 'Number of hippie agents', 10, 2, 20, 1)
 
 learning = UserSettableParameter('checkbox', 'Learning', True)
+pareto_fight = UserSettableParameter('checkbox', 'Pareto Fight', False)
+pareto = UserSettableParameter('checkbox', 'Pareto', False)
 
 # chart = ChartModule([{"Label": "Alive agents",
 #                       "Color": "Black"}],
@@ -66,4 +66,6 @@ server = ModularServer(FestivalModel,
                         "num_trouble": n_trouble,
                         "num_celeb": n_celeb,
                         "num_hippie": n_hippie,
-                        "learning": learning})
+                        "learning": learning,
+                        "pareto_fight": pareto_fight,
+                        "pareto": pareto})

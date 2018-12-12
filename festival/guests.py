@@ -159,7 +159,7 @@ class Guest(Agent):
     def step(self):
 
         self.fullness -= 0.005 * self.fullness
-        self.enjoyment -= 0.005 * self.enjoyment
+        self.enjoyment -= 0.0005 * self.enjoyment
         # self.happiness += 0.1 * (self.fullness - 0.5) + 0.1 * (self.enjoyment - 0.5)
 
         # self.happiness -= 0.02
