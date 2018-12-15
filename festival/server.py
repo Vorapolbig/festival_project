@@ -5,14 +5,27 @@ from mesa.visualization.modules import ChartModule
 from festival.festival import FestivalModel
 from festival.SimpleContinuousModule import SimpleCanvas
 
+
 guest_color_dict = {
     # role, color
     'party': 'Orange',
     'troublemaker': 'Red',
-    'celebrity': 'Yellow',
+    'celebrity': 'Pink',
     'guard': 'Black',
-    'hippie': 'Green'
+    'hippie': 'Green',
+    'lucia': 'Yellow'
 }
+
+guest_size_dict = {
+    # role, color
+    'party': 4,
+    'troublemaker': 4,
+    'celebrity': 6,
+    'guard': 4,
+    'hippie': 4,
+    'lucia': 15
+}
+
 
 def agent_draw(agent):
     if agent.role == 'store':
@@ -27,12 +40,18 @@ def agent_draw(agent):
                    "h": 0.05,
                    "Filled": "true",
                    "Color": "Red"}
+    # elif agent.role == 'Lucia':
+    #     display = {"Shape": "star",
+    #                "r": 6,
+    #                "Filled": "true",
+    #                "Color": "Yellow"}
     else:
         display = {"Shape": "circle",
-                   "r": 4,
-                   "Filled": "true",
+                   "r": guest_size_dict[agent.role],
+                   "Filled": "True",
                    "Color": guest_color_dict[agent.role]}
     return display
+
 
 canvas = SimpleCanvas(agent_draw, 500, 500)
 model_params = {"num_agents": 50}
@@ -45,6 +64,7 @@ n_hippie = UserSettableParameter('slider', 'Number of hippie agents', 10, 2, 20,
 learning = UserSettableParameter('checkbox', 'Learning', True)
 pareto_fight = UserSettableParameter('checkbox', 'Pareto Fight', False)
 pareto = UserSettableParameter('checkbox', 'Pareto', False)
+lucia = UserSettableParameter('checkbox', 'Lucia Dagen', False)
 
 # chart = ChartModule([{"Label": "Alive agents",
 #                       "Color": "Black"}],
@@ -68,4 +88,5 @@ server = ModularServer(FestivalModel,
                         "num_hippie": n_hippie,
                         "learning": learning,
                         "pareto_fight": pareto_fight,
-                        "pareto": pareto})
+                        "pareto": pareto,
+                        "lucia": lucia})

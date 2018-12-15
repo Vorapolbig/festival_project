@@ -10,6 +10,8 @@ let ContinuousVisualization = function (height, width, context) {
                 this.drawRectangle(p.x, p.y, p.w, p.h, p.Color, p.Filled);
             if (p.Shape === "circle")
                 this.drawCircle(p.x, p.y, p.r, p.Color, p.Filled);
+            if (p.Shape === "oval")
+                this.drawOval(p.x, p.y, p.r, p.Color, p.Filled);
         }
     };
 

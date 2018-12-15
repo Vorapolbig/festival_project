@@ -13,7 +13,7 @@ from mesa.space import ContinuousSpace
 
 from tqdm import tqdm
 
-from .guests import Guest, PartyPerson, Guard, Troublemaker, Celebrity, Hippie
+from .guests import Guest, PartyPerson, Guard, Troublemaker, Celebrity, Hippie, Lucia
 
 import seaborn as sns
 sns.set()
@@ -68,7 +68,8 @@ class Event(Agent):
 
 class FestivalModel(Model):
 
-    def __init__(self, num_party: int= 20, num_guard: int= 5, num_trouble: int= 5, num_celeb: int= 5, num_hippie: int= 20, learning=True, pareto_fight=False, pareto=False):
+    def __init__(self, num_party: int= 20, num_guard: int= 5, num_trouble: int= 5, num_celeb: int= 5, num_hippie: int= 20,
+                 learning=True, pareto_fight=False, pareto=False, lucia=False):
         super().__init__()
         self.num_agents = num_party + num_guard + num_trouble + num_celeb + num_hippie
         self.num_party = num_party
@@ -78,6 +79,7 @@ class FestivalModel(Model):
         self.num_hippie = num_hippie
         self.pareto = pareto
         self.pareto_fight = pareto_fight
+        self.lucia = lucia
 
         self.schedule = StagedActivation(self, ['send_proposes', 'process_proposes', 'step', 'die'])
         self.space = ContinuousSpace(100, 100, False)
@@ -127,6 +129,12 @@ class FestivalModel(Model):
             self.schedule.add(s_)
             self.space.place_agent(s_, (x, y))
 
+        if lucia:
+            x, y = 0, 0
+            a_ = Lucia('Lucia%d' % i, self, (x, y), learning)
+            self.schedule.add(a_)
+            self.space.place_agent(a_, (x, y))
+
     def step(self):
         self.datacollector.collect(self)
         self.schedule.step()
@@ -143,7 +151,7 @@ class FestivalModel(Model):
                 buffers[agent] -= 3
             if self.pareto_fight:
                 p1 = [0.25, 0.25, 0.25, 0.25]
-                p2 = [0.10, 0.10, 0.20, 0.60]
+                p2 = [0.04, 0.16, 0.16, 0.64]
                 index = np.random.choice(np.arange(0, 4), p=p1 if self.pareto else p2)
                 store = [(0, 0), (0.2, -0.7), (-0.7, 0.2), (-0.5, -0.5)]
 
@@ -287,6 +295,34 @@ class FestivalModel(Model):
 
         print("Smoking is happening")
 
+    def blessing(self, agent1: Guest, agent2: Guest):
+        assert self == agent1.model == agent2.model
+        buffers = {agent1: 0., agent2: 0.}
+
+        if agent1.role == 'lucia':
+            lucia = agent1
+            guest = agent2
+        elif agent2.role == 'lucia':
+            lucia = agent2
+            guest = agent1
+        else:
+            print("No hippie in smoking")
+            return
+
+        buffers[lucia] += 0.5
+        buffers[guest] += 0.5
+
+        for agent in (lucia, guest):
+            buffers[agent] += agent.tastes['blessing']
+            buffers[agent] += 0.5*random.random() - 0.25
+
+        for agent in (agent1, agent2):
+            agent.happiness += buffers[agent]
+
+        agent1.learn((agent2.role, 'blessing'), buffers[agent1])
+        agent2.learn((agent1.role, 'blessing'), buffers[agent2])
+
+        print("blessing is happening")
 
 # Roles:
 # PartyPerson - parties with everyone

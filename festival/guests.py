@@ -40,7 +40,8 @@ class Guest(Agent):
             'party': random.random() - 0.5,
             'fight': random.random() - 0.5,
             'selfie': random.random() - 0.5,
-            'smoke': random.random() - 0.5
+            'smoke': random.random() - 0.5,
+            'blessing': random.random() - 0.5,
         }
 
         self.target = None
@@ -257,6 +258,19 @@ class Hippie(Guest):
         super().__init__(unique_id, model, pos, learning)
         self.role = 'hippie'
         self.action = 'smoke'
+
+    def process_proposes(self):
+        super().process_proposes()
+
+    def step(self):
+        super().step()
+
+
+class Lucia(Guest):
+    def __init__(self, unique_id: Any, model: Model, pos: Tuple[float, float], learning: bool = True):
+        super().__init__(unique_id, model, pos, learning)
+        self.role = 'lucia'
+        self.action = 'blessing'
 
     def process_proposes(self):
         super().process_proposes()
